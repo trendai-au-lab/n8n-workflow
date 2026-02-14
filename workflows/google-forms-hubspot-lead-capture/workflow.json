@@ -1,0 +1,228 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# Google Forms to HubSpot Lead Capture\n\n## Who is this for?\nSmall businesses and sales teams that use Google Forms to capture leads and HubSpot as their CRM.\n\n## What does it do?\n- Monitors a Google Sheet for new form responses (every minute)\n- Creates a contact in HubSpot CRM with custom properties\n- Sends an HTML email notification with the lead's details\n\n## Setup Requirements\n1. **Google Form** linked to a Google Sheet\n2. **HubSpot Account** with an App Token\n3. **Gmail Account** for sending notifications\n\n## Quick Start\n1. Configure Google Sheets OAuth2 credential\n2. Configure HubSpot App Token credential\n3. Configure Gmail OAuth2 credential\n4. Select your Google Sheet and sheet tab\n5. Create custom properties in HubSpot (`lead_challenge`, `lead_urgency`)\n6. Update the notification email address in \"Send Lead Notification\" node\n7. Activate the workflow\n\n",
+        "height": 680,
+        "width": 720,
+        "color": 4
+      },
+      "id": "c34b33a3-4aa8-4095-a658-cee10edf52a1",
+      "name": "Sticky Note - Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -368,
+        -320
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 1. Trigger - New Form Submission\n\nPolls the Google Sheet every minute for new rows added by your Google Form.\n\n**How it works:**\n1. Connects to your Google Sheet via OAuth2\n2. Detects new rows (form responses)\n3. Passes form data to the next node\n\n**Required fields in your form:**\n- Name\n- Email address\n- Company\n- What challenge are you trying to solve?\n- Urgency",
+        "height": 452,
+        "width": 300,
+        "color": 7
+      },
+      "id": "e2488be0-bf80-4800-9ce6-91125cd108b8",
+      "name": "Sticky Note - Trigger",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        576,
+        -128
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 2. CRM - Add to HubSpot\n\nCreates or updates a contact in HubSpot with the lead's details.\n\n**Mapped fields:**\n- Email → Contact email\n- Name → First name\n- Company → Company name\n- Challenge → `lead_challenge` (custom property)\n- Urgency → `lead_urgency` (custom property)\n\n**Important:** Create custom properties `lead_challenge` and `lead_urgency` in HubSpot before using.",
+        "height": 420,
+        "width": 300,
+        "color": 7
+      },
+      "id": "e7001243-47ea-4f49-9fec-96183c6d365a",
+      "name": "Sticky Note - HubSpot",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        992,
+        -128
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## 3. Notify - Send Lead Email\n\nSends an HTML-formatted email notification with all lead details.\n\n**Email includes:**\n- Lead name, email, company\n- Challenge description\n- Urgency level\n- Direct link to HubSpot contacts\n\n**Setup:** Change `YOUR_EMAIL_HERE` in the \"Send Lead Notification\" node to your notification email address.",
+        "height": 364,
+        "width": 300,
+        "color": 7
+      },
+      "id": "56824933-4d8b-4236-a08d-d8ef923a7028",
+      "name": "Sticky Note - Notification",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1392,
+        -128
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Google Sheets Credential Setup\n\n1. In n8n: **Credentials** → **Add Credential**\n2. Search for **\"Google Sheets Trigger OAuth2\"**\n3. Follow the OAuth2 flow to connect your Google account\n4. Select the Sheet linked to your form",
+        "height": 212,
+        "width": 300,
+        "color": 3
+      },
+      "id": "3ba98bd0-ead2-4333-bbee-0a5ff0b23926",
+      "name": "Sticky Note - Google Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -368,
+        368
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### HubSpot Credential Setup\n\n1. In HubSpot: **Settings** → **Integrations** → **Private Apps**\n2. Create a Private App with **Contacts** write scope\n3. Copy the App Token\n4. In n8n: **Credentials** → **Add Credential** → **HubSpot App Token**\n5. Paste the token and save",
+        "height": 264,
+        "width": 300,
+        "color": 3
+      },
+      "id": "db2bd636-ac84-448f-b2e1-f19039e64bbf",
+      "name": "Sticky Note - HubSpot Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -64,
+        368
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Gmail Credential Setup\n\n1. In n8n: **Credentials** → **Add Credential**\n2. Search for **\"Gmail OAuth2\"**\n3. Follow the OAuth2 flow to connect your Gmail account\n4. Update `sendTo` in the node with your email",
+        "height": 308,
+        "width": 300,
+        "color": 3
+      },
+      "id": "684c4c62-6455-4027-b00a-f01537983110",
+      "name": "Sticky Note - Gmail Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        240,
+        368
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "Lead Capture Responses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_GID_HERE",
+          "mode": "list",
+          "cachedResultName": "Form responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=YOUR_SHEET_GID_HERE"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        688,
+        -320
+      ],
+      "id": "fc5221ae-2b10-40c1-973f-ab6a9b135f76",
+      "name": "New Form Submission"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $json['Email address'] }}",
+        "additionalFields": {
+          "companyName": "={{ $json.Company }}",
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "lead_challenge",
+                "value": "={{ $json['What challenge are you trying to solve?  '] }}"
+              },
+              {
+                "property": "lead_urgency",
+                "value": "={{ $json.Urgency }}"
+              }
+            ]
+          },
+          "firstName": "={{ $json.Name }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        -320
+      ],
+      "id": "48a873d0-27a7-4d6a-8a89-8c896bb180e4",
+      "name": "Add to HubSpot"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL_HERE",
+        "subject": "=NEW LEAD: {{ $json.properties.firstname.value }} from {{ $json.properties.company.value }}",
+        "message": "=<h3>New Lead Inquiry</h3>\n   <p><strong>Name:</strong> {{ $('New Form Submission').item.json.Name }}</p>\n   <p><strong>Email:</strong> {{ $('New Form Submission').item.json['Email address'] }}</p>\n   <p><strong>Company:</strong> {{ $('New Form Submission').item.json.Company }}</p>\n   <p><strong>Challenge:</strong> {{ $('New Form Submission').item.json['What challenge are you trying to solve?  '] }}</p>\n   <p><strong>Urgency:</strong> {{ $('New Form Submission').item.json.Urgency }}</p>\n   <hr>\n   <p><a href=\"https://app.hubspot.com/contacts/\">View in HubSpot</a></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        -320
+      ],
+      "id": "edfa4e85-6e99-4d44-887b-15772e0c719e",
+      "name": "Send Lead Notification",
+      "webhookId": "3e05e06a-8281-42ba-a481-1b89857ba0df"
+    }
+  ],
+  "connections": {
+    "New Form Submission": {
+      "main": [
+        [
+          {
+            "node": "Add to HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to HubSpot": {
+      "main": [
+        [
+          {
+            "node": "Send Lead Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e5948555f8096b84815a6d1d44a90b0aa398cb4fb430eefd33674129efd573e"
+  }
+}
