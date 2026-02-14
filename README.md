@@ -1,3 +1,5 @@
+![banner](banner.png)
+
 # n8n Workflow Templates
 
 A public library of production-ready [n8n](https://n8n.io/) automation templates. Each workflow is self-contained, documented, and ready to import into your own n8n instance.
