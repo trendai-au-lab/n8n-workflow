@@ -1,3 +1,5 @@
+![Workflow Preview](./preview.png)
+
 # Smart Facebook Messenger Chatbot with OpenAI
 
 A production-ready n8n workflow that creates an intelligent Facebook Messenger chatbot with message batching, conversation history, and OpenAI integration.

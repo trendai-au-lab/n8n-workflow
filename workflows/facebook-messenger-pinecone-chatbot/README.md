@@ -1,3 +1,5 @@
+![Workflow Preview](./preview.png)
+
 # Facebook Messenger AI Chatbot with Pinecone RAG
 
 A production-ready n8n workflow that creates an intelligent Facebook Messenger chatbot with RAG (Retrieval Augmented Generation) capabilities, powered by OpenAI and Pinecone Assistant.

@@ -1,3 +1,5 @@
+![Workflow Preview](./preview.png)
+
 # Google Forms to HubSpot Lead Capture with Email Notification
 
 Automatically captures new lead submissions from a Google Form (via Google Sheets), creates or updates a contact in HubSpot CRM with custom properties, and sends an email notification with the lead's details.
