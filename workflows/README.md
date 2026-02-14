@@ -1,3 +1,5 @@
+![banner](../banner.png)
+
 # Workflow Catalogue
 
 All available n8n workflow templates in this repository.
