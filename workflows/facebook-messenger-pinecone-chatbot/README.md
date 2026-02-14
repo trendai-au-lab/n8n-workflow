@@ -3,7 +3,7 @@
 A production-ready n8n workflow that creates an intelligent Facebook Messenger chatbot with RAG (Retrieval Augmented Generation) capabilities, powered by OpenAI and Pinecone Assistant.
 
 **Import this workflow:**
-`https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/tree/main/workflows/facebook-messenger-pinecone-chatbot/workflow.json`
+`https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/main/workflows/facebook-messenger-pinecone-chatbot/workflow.json`
 
 ## Prerequisites
 

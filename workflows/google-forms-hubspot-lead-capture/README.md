@@ -3,7 +3,7 @@
 Automatically captures new lead submissions from a Google Form (via Google Sheets), creates or updates a contact in HubSpot CRM with custom properties, and sends an email notification with the lead's details.
 
 **Import this workflow:**
-`https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/tree/main/workflows/google-forms-hubspot-lead-capture/workflow.json`
+`https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/main/workflows/google-forms-hubspot-lead-capture/workflow.json`
 
 ## Prerequisites
 

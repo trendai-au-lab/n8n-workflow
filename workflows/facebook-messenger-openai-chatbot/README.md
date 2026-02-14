@@ -3,7 +3,7 @@
 A production-ready n8n workflow that creates an intelligent Facebook Messenger chatbot with message batching, conversation history, and OpenAI integration.
 
 **Import this workflow:**
-`https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/tree/main/workflows/facebook-messenger-openai-chatbot/workflow.json`
+`https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/main/workflows/facebook-messenger-openai-chatbot/workflow.json`
 
 ## Prerequisites
 
