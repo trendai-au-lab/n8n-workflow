@@ -19,6 +19,12 @@ All available n8n workflow templates, organised by category.
 |----------|-------------|------------|
 | [Google Forms to HubSpot Lead Capture](google-forms-hubspot-lead-capture/) | Captures Google Form submissions, creates HubSpot contacts with custom properties, and sends email notifications | `https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/main/workflows/google-forms-hubspot-lead-capture/workflow.json` |
 
+## 🎬 Content & Media
+
+| Workflow | Description | Import URL |
+|----------|-------------|------------|
+| [YouTube Video Summarizer — Discord Bot](youtube-video-summarizer-discord/) | Automatically summarize YouTube videos shared in Discord using yt-dlp, Gemini AI, and Supabase (self-hosted only) | `https://raw.githubusercontent.com/trendai-au-lab/n8n-workflow/main/workflows/youtube-video-summarizer-discord/workflow.json` |
+
 ---
 
 ## Categories
@@ -27,6 +33,7 @@ All available n8n workflow templates, organised by category.
 |----------|-------------|
 | `Chatbots` | AI-powered conversational agents across messaging platforms |
 | `CRM & Lead Capture` | Lead intake, HubSpot sync, and contact automation |
+| `Content & Media` | YouTube summarizers, video processing, and media automation |
 | `Email` | *(coming soon)* Email sequences, notifications, and outreach automation |
 | `Social` | *(coming soon)* Content posting and engagement |
 | `Reporting` | *(coming soon)* KPI dashboards and automated summaries |

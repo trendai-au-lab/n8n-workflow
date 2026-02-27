@@ -1,0 +1,667 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Extract YouTube URL from Discord message\nconst message = $input.first().json;\nconst messageContent = message.content;\n\nif (!messageContent) {\n  return [];\n}\n\n// Match youtube.com/watch?v= and youtu.be/ formats\nconst ytRegex = /(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/(?:watch\\?v=|live\\/|shorts\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})(?:[&?][^\\s]*)*/;\nconst match = messageContent.match(ytRegex);\n\nif (!match) {\n  return [{\n    json: {\n      is_youtube: false,\n      channel_id: message.channelId\n    }\n  }];\n}\n\nconst videoId = match[1];\nconst videoUrl = `https://www.youtube.com/watch?v=${videoId}`;\n\nreturn [{\n  json: {\n    is_youtube: true,\n    video_id: videoId,\n    video_url: videoUrl,\n    discord_message: messageContent,\n    discord_shared_at: new Date().toISOString(),\n    channel_id: message.channelId\n  }\n}];"
+      },
+      "id": "c6f90d1a-8225-486f-a6b6-986412e2ea83",
+      "name": "Extract YouTube URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "guildIds": [
+          "YOUR_GUILD_ID"
+        ],
+        "channelIds": [
+          "YOUR_CHANNEL_ID"
+        ],
+        "pattern": "every",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-discord-trigger.discordTrigger",
+      "typeVersion": 1,
+      "position": [
+        816,
+        336
+      ],
+      "id": "72f873a5-ea5f-483c-8de3-dd98940d8b29",
+      "name": "Discord Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "condition-yt-check",
+              "leftValue": "={{ $json.is_youtube }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        336
+      ],
+      "id": "2afa8551-d337-450a-82f9-fc3ba74939ef",
+      "name": "Is YouTube URL?"
+    },
+    {
+      "parameters": {
+        "command": "=yt-dlp --js-runtime node --remote-components ejs:github --cookies /home/node/.n8n/cookies.txt --write-auto-sub --sub-lang en --skip-download -o \"/tmp/yt_%(id)s\" \"{{ $node[\"Extract YouTube URL\"].json[\"video_url\"] }}\" 2>/dev/null; yt-dlp --js-runtime node --remote-components ejs:github --cookies /home/node/.n8n/cookies.txt --print \"{\\\"id\\\":%(id)#j,\\\"title\\\":%(title)#j,\\\"description\\\":%(description)#j,\\\"view_count\\\":%(view_count)s,\\\"channel\\\":%(channel)#j,\\\"upload_date\\\":%(upload_date)#j,\\\"duration\\\":%(duration)s}\" --skip-download \"{{ $node[\"Extract YouTube URL\"].json[\"video_url\"] }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        240
+      ],
+      "id": "c9157a43-d378-452f-910c-42c02f46cf0e",
+      "name": "yt-dlp Get Metadata"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = $input.first().json.stdout;\n\nif (!rawOutput) {\n  throw new Error('yt-dlp returned no output — video may be private, deleted, or geo-blocked');\n}\n\n// Extract fields using regex since description may break JSON\nconst getId = rawOutput.match(/\"id\":\"([^\"]+)\"/);\nconst getTitle = rawOutput.match(/\"title\":\"([^\"]+)\"/);\nconst getChannel = rawOutput.match(/\"channel\":\"([^\"]+)\"/);\nconst getDate = rawOutput.match(/\"upload_date\":\"([^\"]+)\"/);\nconst getDuration = rawOutput.match(/\"duration\":(\\d+)/);\nconst getViews = rawOutput.match(/\"view_count\":(\\d+)/);\n\nif (!getId) throw new Error('MISSING: video id not found');\nif (!getTitle) throw new Error('MISSING: title not found');\nif (!getChannel) throw new Error('MISSING: channel not found');\nif (!getDate) throw new Error('MISSING: upload_date not found');\nif (!getDuration) throw new Error('MISSING: duration not found');\nif (!getViews) throw new Error('MISSING: view_count not found');\n\n// Extract description: match up to the next known key\nconst descMatch = rawOutput.match(/\"description\":\"([\\s\\S]*?)\",\"view_count\"/);\nconst description = descMatch ? descMatch[1].replace(/\\\\n/g, '\\n').replace(/\\\\\"/g, '\"') : '';\n\nconst prevData = $('Extract YouTube URL').first().json;\n\nreturn [{\n  json: {\n    video_id: getId[1],\n    title: getTitle[1],\n    channel: getChannel[1],\n    upload_date: getDate[1],\n    duration: parseInt(getDuration[1]),\n    view_count: parseInt(getViews[1]),\n    description: description,\n    thumbnail_url: `https://img.youtube.com/vi/${getId[1]}/maxresdefault.jpg`,\n    video_url: prevData.video_url,\n    discord_shared_at: prevData.discord_shared_at,\n    channel_id: prevData.channel_id,\n    subtitle_file: `/tmp/yt_${getId[1]}.en.vtt`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        240
+      ],
+      "id": "f3b89112-770c-4edb-8dc2-e4ce85427d7c",
+      "name": "Parse Metadata"
+    },
+    {
+      "parameters": {
+        "command": "=cat \"{{ $json.subtitle_file }}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2256,
+        240
+      ],
+      "id": "73e2f858-dda0-4656-b112-da871ed51d5d",
+      "name": "Read Subtitle File",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst prevData = $('Parse Metadata').first().json;\n\n// Check if Read Subtitle File failed (continueOnFail)\nif (input.error || !input.stdout || input.stdout.trim().length === 0) {\n  throw new Error('No subtitles available for video: ' + prevData.video_id);\n}\n\nconst vttContent = input.stdout;\nconst lines = vttContent.split('\\n');\nconst textLines = [];\nlet lastLine = \"\";\n\nfor (let line of lines) {\n    let trimmed = line.trim();\n    \n    // Skip VTT metadata and timestamps\n    if (!trimmed || \n        trimmed === 'WEBVTT' || \n        trimmed.startsWith('Kind:') || \n        trimmed.startsWith('Language:') || \n        /^(\\d{2}:)?\\d{2}:\\d{2}\\.\\d{3}/.test(trimmed) || \n        trimmed.includes('-->')) {\n        continue;\n    }\n\n    // Remove HTML-like tags (styling)\n    const cleaned = trimmed.replace(/<[^>]+>/g, '').trim();\n    \n    // Prevent duplicate adjacent lines (common in VTT)\n    if (cleaned && cleaned !== lastLine) {\n        textLines.push(cleaned);\n        lastLine = cleaned;\n    }\n}\n\nconst transcript = textLines.join(' ');\n\nreturn [{\n    json: {\n        ...prevData,\n        transcript: transcript\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        240
+      ],
+      "id": "a96ce563-d3c4-4642-a368-0b56b4f3efe6",
+      "name": "Parse Transcript"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a video content summarizer. Summarize the following YouTube video.\n\n  Video Title: {{ $json.title }}\n  Channel: {{ $json.channel }}\n\n  Transcript:\n  {{ $json.transcript }}\n\n  ---\n\n  Provide a concise summary (3-5 paragraphs) capturing:\n  1. The main topic and key points\n  2. Important arguments, examples, or data\n  3. Key takeaways or conclusions\n\n  Write in clear, informative prose. No bullet points.\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        2704,
+        240
+      ],
+      "id": "7223e3a5-45f3-4221-ac18-dcc959af86b0",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentData = $('Parse Transcript').first().json;\nconst geminiOutput = $input.first().json;\n\nconst summary = geminiOutput.content.parts[0].text;\n\nif (!summary) {\n  throw new Error('MISSING: Gemini returned no summary text');\n}\n\nreturn [{\n  json: {\n    video_id: currentData.video_id,\n    title: currentData.title,\n    channel: currentData.channel,\n    upload_date: currentData.upload_date,\n    duration: currentData.duration,\n    view_count: currentData.view_count,\n    description: currentData.description,\n    transcript: currentData.transcript,\n    ai_summary: summary,\n    thumbnail_url: currentData.thumbnail_url,\n    discord_shared_at: currentData.discord_shared_at,\n    channel_id: currentData.channel_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3056,
+        240
+      ],
+      "id": "6a7688d9-ddfa-492b-b239-2d4a1a86dddd",
+      "name": "Prepare Insert Data"
+    },
+    {
+      "parameters": {
+        "tableId": "videos",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3280,
+        240
+      ],
+      "id": "59352ee2-42b0-4fa0-a978-18db79f6b074",
+      "name": "Save to Supabase"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Prepare Insert Data').first().json;\n\nreturn [{\n  json: {\n    video_id: data.video_id,\n    process_status: 'success',\n    error_type: null,\n    notes: null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3504,
+        240
+      ],
+      "id": "5ad16058-98d8-45cd-a888-32aa22a0503a",
+      "name": "Prepare Success Log"
+    },
+    {
+      "parameters": {
+        "tableId": "runs",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3728,
+        240
+      ],
+      "id": "a6960fc3-e685-450a-bebd-d478c112dfef",
+      "name": "Log Run"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "YOUR_GUILD_ID",
+          "mode": "list",
+          "cachedResultName": "Your Server",
+          "cachedResultUrl": ""
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "your-channel",
+          "cachedResultUrl": ""
+        },
+        "content": "=Video saved! {{ $('Prepare Insert Data').first().json.title }} by {{ $('Prepare Insert Data').first().json.channel }} | Duration: {{ Math.floor($('Prepare Insert Data').first().json.duration / 60) }}m {{ $('Prepare Insert Data').first().json.duration % 60 }}s | {{ $('Prepare Insert Data').first().json.view_count }} views --- Summary: {{ $('Prepare Insert Data').first().json.ai_summary.substring(0, 500) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        3952,
+        240
+      ],
+      "id": "3ddc6298-a70c-457f-beb0-22ab9c96627b",
+      "name": "Discord Reply",
+      "webhookId": "058ea77a-9106-4948-b83a-2626081e0cb7"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "YOUR_GUILD_ID",
+          "mode": "list",
+          "cachedResultName": "Your Server",
+          "cachedResultUrl": ""
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "your-channel",
+          "cachedResultUrl": ""
+        },
+        "content": "That doesn't look like a YouTube link. Please share a valid YouTube URL.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        432
+      ],
+      "id": "7bd6d991-97cf-4881-aba8-d19154c901c2",
+      "name": "Discord Not YouTube Reply",
+      "webhookId": "00ac09ce-7927-49c6-b1bc-2a6e0d70b19a"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        816,
+        656
+      ],
+      "id": "6992c8ce-c5f7-4bf5-b935-63d8327a44ef",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const errorData = $input.first().json;\nconst errorMessage = errorData.execution?.error?.message || 'Unknown error';\nconst errorNode = errorData.execution?.error?.node?.name || 'Unknown node';\n\n// Determine error_type based on failing node\nlet errorType = 'unknown';\nif (errorNode.includes('yt-dlp') || errorNode === 'Parse Metadata') {\n  errorType = 'yt_dlp_failed';\n} else if (errorNode === 'Parse Transcript') {\n  errorType = errorMessage.includes('No subtitles') ? 'no_subtitles' : 'transcript_error';\n} else if (errorNode.includes('model') || errorNode.includes('Gemini')) {\n  errorType = 'gemini_error';\n} else if (errorNode.includes('Supabase') || errorNode.includes('Insert')) {\n  errorType = 'supabase_error';\n} else if (errorNode.includes('Prepare')) {\n  errorType = 'gemini_error';\n}\n\n// Try to extract video_id from error message\nconst vidMatch = errorMessage.match(/(?:video:\\s*|video_id:\\s*|yt_)([a-zA-Z0-9_-]{11})/);\nconst videoId = vidMatch ? vidMatch[1] : 'unknown';\n\nreturn [{\n  json: {\n    video_id: videoId,\n    process_status: 'error',\n    error_type: errorType,\n    notes: `[${errorNode}] ${errorMessage}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        656
+      ],
+      "id": "b92394a0-5db7-4501-83e9-3311b243c0de",
+      "name": "Prepare Error Data"
+    },
+    {
+      "parameters": {
+        "tableId": "runs",
+        "dataToSend": "autoMapInputData"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        656
+      ],
+      "id": "72654d32-d5bf-46c7-b3d0-48bd8fb8d652",
+      "name": "Log Run Error"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "YOUR_GUILD_ID",
+          "mode": "list",
+          "cachedResultName": "Your Server",
+          "cachedResultUrl": ""
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "your-channel",
+          "cachedResultUrl": ""
+        },
+        "content": "=Error processing video: {{ $('Prepare Error Data').first().json.notes }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        656
+      ],
+      "id": "9e9f4f6e-ed22-43a3-83b3-c829b952f23b",
+      "name": "Discord Error Reply",
+      "webhookId": "cf7361db-56e3-4e13-aaac-590450d0f792"
+    },
+    {
+      "parameters": {
+        "content": "# YouTube Video Summarizer — Discord Bot\n\n## Who is this for?\nTeams or creators who want to automatically summarize YouTube videos shared in a Discord channel.\n\n## What does it do?\n- Listens for YouTube links posted in a Discord channel\n- Downloads subtitles and metadata via yt-dlp\n- Summarizes the transcript using Gemini 2.5 Flash\n- Saves the full data (metadata + transcript + summary) to Supabase\n- Replies in Discord with a summary preview\n- Logs every run (success or error) to a `runs` table\n- Replies with helpful error messages when something goes wrong\n\n## Setup Requirements\n1. **Discord Bot** with message read + send permissions\n2. **yt-dlp** installed in the n8n container (with cookies.txt)\n3. **Google Gemini API Key** (Gemini 2.5 Flash)\n4. **Supabase** project with `videos` and `runs` tables\n\n## Quick Start\n1. Import the workflow into n8n\n2. Configure Discord Bot Trigger + Discord Bot credentials\n3. Configure Gemini API credential\n4. Configure Supabase credential\n5. Create `videos` and `runs` tables in Supabase\n6. Update Discord guild/channel IDs to match your server\n7. Activate the workflow\n8. Post a YouTube link in your Discord channel!",
+        "height": 892,
+        "width": 496,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -64
+      ],
+      "id": "e080e0ad-b3e1-4339-9ac4-379d7eb233b8",
+      "name": "Sticky Note - Overview"
+    },
+    {
+      "parameters": {
+        "content": "## 1. Trigger & URL Detection\n\nListens for every message in the configured Discord channel and checks if it contains a YouTube URL.\n\n**How it works:**\n1. Discord Trigger fires on every new message\n2. Code node extracts YouTube video ID via RegEx\n3. IF node routes: YouTube URL → processing, other messages → friendly reply",
+        "height": 228,
+        "width": 720,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        784,
+        32
+      ],
+      "id": "e483a6fa-2996-499b-b1bb-dc79a4b286ac",
+      "name": "Sticky Note - Trigger"
+    },
+    {
+      "parameters": {
+        "content": "## 2. Video Data Extraction\n\nRuns yt-dlp to download subtitles and fetch video metadata in a single shell command.\n\n**How it works:**\n1. yt-dlp downloads auto-generated English subtitles (.vtt) to /tmp\n2. yt-dlp prints metadata JSON (title, channel, views, duration)\n3. Parse Metadata extracts fields via RegEx (handles broken JSON from descriptions)",
+        "height": 256,
+        "width": 480,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -80
+      ],
+      "id": "11f775f4-f864-4d03-a59f-d64497548943",
+      "name": "Sticky Note - Video Data Extraction"
+    },
+    {
+      "parameters": {
+        "content": "## 3. Transcript Processing\n\nReads the .vtt subtitle file and cleans it into plain text.\n\n**How it works:**\n1. `cat` reads the VTT file (continueOnFail enabled)\n2. Parse Transcript strips timestamps, HTML tags, and deduplicates lines\n3. If no subtitles exist, throws a descriptive error caught by Error Trigger",
+        "height": 240,
+        "width": 480,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        -80
+      ],
+      "id": "f5c03875-75ee-47cf-98fb-b38ca0252f99",
+      "name": "Sticky Note - Transcript Processing"
+    },
+    {
+      "parameters": {
+        "content": "## 4. AI Summarization\n\nSends the clean transcript to Gemini 2.5 Flash for a concise summary.\n\n**How it works:**\n1. Gemini receives title, channel, and full transcript\n2. Returns 3-5 paragraphs of prose (no bullet points)\n3. Prepare Insert Data merges summary with all metadata fields",
+        "height": 240,
+        "width": 536,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2704,
+        -80
+      ],
+      "id": "8de494c3-331b-43e2-a3af-93357f38aa76",
+      "name": "Sticky Note - AI Summarization"
+    },
+    {
+      "parameters": {
+        "content": "## 5. Save & Notify\n\nPersists data to Supabase and replies in Discord.\n\n**How it works:**\n1. Save to Supabase inserts all fields into the `videos` table\n2. Prepare Success Log builds a run record (status: success)\n3. Log Run inserts into the `runs` table\n4. Discord Reply posts a summary preview (title, duration, views, first 500 chars)",
+        "height": 240,
+        "width": 900,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3328,
+        -80
+      ],
+      "id": "467a5219-31d9-4408-b3e5-3ee5249b150b",
+      "name": "Sticky Note - Save & Notify"
+    },
+    {
+      "parameters": {
+        "content": "## 6. Error Handling\n\nCatches any workflow crash and replies in Discord with the error details.\n\n**How it works:**\n1. Error Trigger fires on any unhandled node failure\n2. Prepare Error Data classifies the error type (yt_dlp_failed, no_subtitles, gemini_error, supabase_error)\n3. Log Run Error saves the error to the `runs` table\n4. Discord Error Reply posts the error message to the channel",
+        "height": 256,
+        "width": 740,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        832
+      ],
+      "id": "d572aa5d-711a-41d1-9b8e-d770896d7bd8",
+      "name": "Sticky Note - Error Handling"
+    },
+    {
+      "parameters": {
+        "content": "### Discord Bot Setup\n\n1. Go to [Discord Developer Portal](https://discord.com/developers/applications)\n2. Create a new Application → Bot\n3. Enable **Message Content Intent** under Privileged Intents\n4. Copy the Bot Token\n5. Invite bot to your server with Send Messages + Read Messages permissions\n6. In n8n: Create **Discord Bot Trigger** credential (for listening)\n7. Create **Discord Bot** credential (for sending replies)\n8. Update guild ID and channel ID in Trigger + Reply nodes",
+        "height": 300,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        816,
+        1120
+      ],
+      "id": "2d59111c-f6a9-402b-a595-7521f852492d",
+      "name": "Sticky Note - Discord Setup"
+    },
+    {
+      "parameters": {
+        "content": "### Gemini API Setup\n\n1. Go to [Google AI Studio](https://aistudio.google.com/apikey)\n2. Click **Create API Key**\n3. Copy the key\n4. In n8n: Click the Gemini node → Credential → Create New\n5. Paste your API key and save\n6. Model: `gemini-2.5-flash` (default)",
+        "height": 240,
+        "width": 400,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2704,
+        496
+      ],
+      "id": "511c56bf-9f80-4e4d-acc2-c48d767f8fd4",
+      "name": "Sticky Note - Gemini Setup"
+    },
+    {
+      "parameters": {
+        "content": "### Supabase Setup\n\n1. Create a project at [supabase.com](https://supabase.com)\n2. Go to Settings → API → copy the **URL** and **anon key**\n3. In n8n: Create Supabase credential with URL + API key\n4. Run the SQL below to create required tables:\n\n```sql\nCREATE TABLE videos (\n  video_id TEXT PRIMARY KEY,\n  title TEXT, channel TEXT,\n  upload_date TEXT, duration INT,\n  view_count INT, description TEXT,\n  transcript TEXT, ai_summary TEXT,\n  thumbnail_url TEXT,\n  discord_shared_at TIMESTAMPTZ,\n  channel_id TEXT\n);\n\nCREATE TABLE runs (\n  video_id TEXT PRIMARY KEY,\n  process_status TEXT NOT NULL,\n  error_type TEXT, notes TEXT,\n  date_added TIMESTAMPTZ DEFAULT now()\n);\n```",
+        "height": 480,
+        "width": 440,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3280,
+        496
+      ],
+      "id": "e0fbbd52-4401-4daa-856e-db5a090e8097",
+      "name": "Sticky Note - Supabase Setup"
+    }
+  ],
+  "connections": {
+    "Extract YouTube URL": {
+      "main": [
+        [
+          {
+            "node": "Is YouTube URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract YouTube URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is YouTube URL?": {
+      "main": [
+        [
+          {
+            "node": "yt-dlp Get Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord Not YouTube Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "yt-dlp Get Metadata": {
+      "main": [
+        [
+          {
+            "node": "Parse Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Metadata": {
+      "main": [
+        [
+          {
+            "node": "Read Subtitle File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Subtitle File": {
+      "main": [
+        [
+          {
+            "node": "Parse Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Transcript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Prepare Insert Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Insert Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Prepare Success Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Success Log": {
+      "main": [
+        [
+          {
+            "node": "Log Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Run": {
+      "main": [
+        [
+          {
+            "node": "Discord Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Error Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Data": {
+      "main": [
+        [
+          {
+            "node": "Log Run Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Run Error": {
+      "main": [
+        [
+          {
+            "node": "Discord Error Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "9e5948555f8096b84815a6d1d44a90b0aa398cb4fb430eefd33674129efd573e"
+  }
+}

@@ -35,6 +35,7 @@ A public library of production-ready [n8n](https://n8n.io/) automation templates
 |----------|-----------|-------------|
 | [Chatbots](workflows/README.md#-chatbots) | 2 | AI agents for Facebook Messenger and other platforms |
 | [CRM & Lead Capture](workflows/README.md#-crm--lead-capture) | 1 | Lead intake, HubSpot sync, contact automation |
+| [Content & Media](workflows/README.md#-content--media) | 1 | YouTube summarizers, video processing, media automation |
 | Email | coming soon | Sequences, outreach, and notifications |
 | Social | coming soon | Content posting and engagement |
 | Reporting | coming soon | KPI dashboards and automated summaries |
