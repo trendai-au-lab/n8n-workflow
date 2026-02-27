@@ -4,22 +4,22 @@
       "parameters": {
         "jsCode": "// Extract YouTube URL from Discord message\nconst message = $input.first().json;\nconst messageContent = message.content;\n\nif (!messageContent) {\n  return [];\n}\n\n// Match youtube.com/watch?v= and youtu.be/ formats\nconst ytRegex = /(?:https?:\\/\\/)?(?:www\\.)?(?:youtube\\.com\\/(?:watch\\?v=|live\\/|shorts\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})(?:[&?][^\\s]*)*/;\nconst match = messageContent.match(ytRegex);\n\nif (!match) {\n  return [{\n    json: {\n      is_youtube: false,\n      channel_id: message.channelId\n    }\n  }];\n}\n\nconst videoId = match[1];\nconst videoUrl = `https://www.youtube.com/watch?v=${videoId}`;\n\nreturn [{\n  json: {\n    is_youtube: true,\n    video_id: videoId,\n    video_url: videoUrl,\n    discord_message: messageContent,\n    discord_shared_at: new Date().toISOString(),\n    channel_id: message.channelId\n  }\n}];"
       },
-      "id": "c6f90d1a-8225-486f-a6b6-986412e2ea83",
+      "id": "1273ffea-39d3-42cc-bcb1-abd403ea3bd7",
       "name": "Extract YouTube URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1040,
+        -576,
         336
       ]
     },
     {
       "parameters": {
         "guildIds": [
-          "YOUR_GUILD_ID"
+          "YOUR_GUILD_ID_HERE"
         ],
         "channelIds": [
-          "YOUR_CHANNEL_ID"
+          "YOUR_CHANNEL_ID_HERE"
         ],
         "pattern": "every",
         "additionalFields": {}
@@ -27,18 +27,26 @@
       "type": "n8n-nodes-discord-trigger.discordTrigger",
       "typeVersion": 1,
       "position": [
-        816,
+        -800,
         336
       ],
-      "id": "72f873a5-ea5f-483c-8de3-dd98940d8b29",
-      "name": "Discord Trigger"
+      "id": "610f37f3-d1c9-491f-9fa9-eda1af30e9d6",
+      "name": "Discord Trigger",
+      "credentials": {
+        "discordBotTriggerApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Discord Bot Trigger account"
+        }
+      }
     },
     {
       "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
-            "leftValue": ""
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -58,10 +66,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1584,
+        -32,
         336
       ],
-      "id": "2afa8551-d337-450a-82f9-fc3ba74939ef",
+      "id": "9e31fe2d-41e3-4405-8340-4a63650ea96d",
       "name": "Is YouTube URL?"
     },
     {
@@ -71,10 +79,10 @@
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        1808,
+        192,
         240
       ],
-      "id": "c9157a43-d378-452f-910c-42c02f46cf0e",
+      "id": "3a55d9c6-c8b5-4170-be43-5d9b19c82b4d",
       "name": "yt-dlp Get Metadata"
     },
     {
@@ -84,10 +92,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2032,
+        416,
         240
       ],
-      "id": "f3b89112-770c-4edb-8dc2-e4ce85427d7c",
+      "id": "6121252c-8e1f-446b-9b00-48039ed9eaaa",
       "name": "Parse Metadata"
     },
     {
@@ -97,10 +105,10 @@
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        2256,
+        640,
         240
       ],
-      "id": "73e2f858-dda0-4656-b112-da871ed51d5d",
+      "id": "fd999ffd-80b4-4248-bf9a-77247fe5d9f8",
       "name": "Read Subtitle File",
       "onError": "continueRegularOutput"
     },
@@ -111,10 +119,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2480,
+        864,
         240
       ],
-      "id": "a96ce563-d3c4-4642-a368-0b56b4f3efe6",
+      "id": "f77139fe-ebad-4c6c-9d63-55561a004918",
       "name": "Parse Transcript"
     },
     {
@@ -128,7 +136,7 @@
         "messages": {
           "values": [
             {
-              "content": "=You are a video content summarizer. Summarize the following YouTube video.\n\n  Video Title: {{ $json.title }}\n  Channel: {{ $json.channel }}\n\n  Transcript:\n  {{ $json.transcript }}\n\n  ---\n\n  Provide a concise summary (3-5 paragraphs) capturing:\n  1. The main topic and key points\n  2. Important arguments, examples, or data\n  3. Key takeaways or conclusions\n\n  Write in clear, informative prose. No bullet points.\n"
+              "content": "=Please summarize this YouTube video.\n\nVideo Title: {{ $json.title }}\nChannel: {{ $json.channel }}\n\nTranscript:\n{{ $json.transcript }}\n\nProvide a concise summary of the video. Format your response exactly as follows:\n\n**TLDR**\n[Write a single paragraph, 3-4 sentence summary of the main idea here]\n\n**Summary**\n[Write a detailed 3-5 paragraph summary capturing key points, arguments, and conclusions here]\n\nWrite in clear, informative prose. No bullet points.\n"
             }
           ]
         },
@@ -137,11 +145,17 @@
       "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1,
       "position": [
-        2704,
+        1088,
         240
       ],
-      "id": "7223e3a5-45f3-4221-ac18-dcc959af86b0",
-      "name": "Message a model"
+      "id": "26965400-999e-4dea-bdf1-c8190da03f5f",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Google Gemini (PaLM) API account"
+        }
+      }
     },
     {
       "parameters": {
@@ -150,25 +164,31 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3056,
+        1440,
         240
       ],
-      "id": "6a7688d9-ddfa-492b-b239-2d4a1a86dddd",
+      "id": "f0067574-707f-46b5-a725-8988539c20da",
       "name": "Prepare Insert Data"
     },
     {
       "parameters": {
         "tableId": "videos",
-        "dataToSend": "autoMapInputData"
+        "dataToSend": "=autoMapInputData"
       },
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3280,
+        1664,
         240
       ],
-      "id": "59352ee2-42b0-4fa0-a978-18db79f6b074",
-      "name": "Save to Supabase"
+      "id": "b9f7473c-2bc1-4337-8efb-4b555cc8439c",
+      "name": "Save to Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
@@ -177,10 +197,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3504,
+        1888,
         240
       ],
-      "id": "5ad16058-98d8-45cd-a888-32aa22a0503a",
+      "id": "5606a6df-0d30-4b1f-896f-5492ed37d048",
       "name": "Prepare Success Log"
     },
     {
@@ -191,55 +211,68 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3728,
+        2112,
         240
       ],
-      "id": "a6960fc3-e685-450a-bebd-d478c112dfef",
-      "name": "Log Run"
+      "id": "d94f1688-aed4-4cfa-8553-77519c45fa17",
+      "name": "Log Run",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
         "resource": "message",
         "guildId": {
           "__rl": true,
-          "value": "YOUR_GUILD_ID",
+          "value": "YOUR_GUILD_ID_HERE",
           "mode": "list",
           "cachedResultName": "Your Server",
           "cachedResultUrl": ""
         },
         "channelId": {
           "__rl": true,
-          "value": "YOUR_CHANNEL_ID",
+          "value": "YOUR_CHANNEL_ID_HERE",
           "mode": "list",
           "cachedResultName": "your-channel",
           "cachedResultUrl": ""
         },
-        "content": "=Video saved! {{ $('Prepare Insert Data').first().json.title }} by {{ $('Prepare Insert Data').first().json.channel }} | Duration: {{ Math.floor($('Prepare Insert Data').first().json.duration / 60) }}m {{ $('Prepare Insert Data').first().json.duration % 60 }}s | {{ $('Prepare Insert Data').first().json.view_count }} views --- Summary: {{ $('Prepare Insert Data').first().json.ai_summary.substring(0, 500) }}",
+        "content": "={{ $json.chunk }}",
         "options": {}
       },
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        3952,
+        2528,
         240
       ],
-      "id": "3ddc6298-a70c-457f-beb0-22ab9c96627b",
+      "id": "e932de7a-bc59-4523-bd96-81b8855e4cc7",
       "name": "Discord Reply",
-      "webhookId": "058ea77a-9106-4948-b83a-2626081e0cb7"
+      "webhookId": "",
+      "credentials": {
+        "discordBotApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Discord Bot account"
+        }
+      }
     },
     {
       "parameters": {
         "resource": "message",
         "guildId": {
           "__rl": true,
-          "value": "YOUR_GUILD_ID",
+          "value": "YOUR_GUILD_ID_HERE",
           "mode": "list",
           "cachedResultName": "Your Server",
           "cachedResultUrl": ""
         },
         "channelId": {
           "__rl": true,
-          "value": "YOUR_CHANNEL_ID",
+          "value": "YOUR_CHANNEL_ID_HERE",
           "mode": "list",
           "cachedResultName": "your-channel",
           "cachedResultUrl": ""
@@ -250,22 +283,28 @@
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        1808,
+        192,
         432
       ],
-      "id": "7bd6d991-97cf-4881-aba8-d19154c901c2",
+      "id": "ac5c0018-638c-4c15-9138-ce6989427dae",
       "name": "Discord Not YouTube Reply",
-      "webhookId": "00ac09ce-7927-49c6-b1bc-2a6e0d70b19a"
+      "webhookId": "",
+      "credentials": {
+        "discordBotApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Discord Bot account"
+        }
+      }
     },
     {
       "parameters": {},
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "position": [
-        816,
+        -800,
         656
       ],
-      "id": "6992c8ce-c5f7-4bf5-b935-63d8327a44ef",
+      "id": "6516263a-56ab-4892-9a54-7699850fda00",
       "name": "Error Trigger"
     },
     {
@@ -275,10 +314,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1040,
+        -576,
         656
       ],
-      "id": "b92394a0-5db7-4501-83e9-3311b243c0de",
+      "id": "8fa011ac-baa2-43d0-9ed6-a731d5532d62",
       "name": "Prepare Error Data"
     },
     {
@@ -289,25 +328,31 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1584,
+        -32,
         656
       ],
-      "id": "72654d32-d5bf-46c7-b3d0-48bd8fb8d652",
-      "name": "Log Run Error"
+      "id": "1c208dab-6014-4835-9a68-00a9e721a6bd",
+      "name": "Log Run Error",
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
         "resource": "message",
         "guildId": {
           "__rl": true,
-          "value": "YOUR_GUILD_ID",
+          "value": "YOUR_GUILD_ID_HERE",
           "mode": "list",
           "cachedResultName": "Your Server",
           "cachedResultUrl": ""
         },
         "channelId": {
           "__rl": true,
-          "value": "YOUR_CHANNEL_ID",
+          "value": "YOUR_CHANNEL_ID_HERE",
           "mode": "list",
           "cachedResultName": "your-channel",
           "cachedResultUrl": ""
@@ -318,12 +363,18 @@
       "type": "n8n-nodes-base.discord",
       "typeVersion": 2,
       "position": [
-        1808,
+        192,
         656
       ],
-      "id": "9e9f4f6e-ed22-43a3-83b3-c829b952f23b",
+      "id": "6ddf1a0a-ed65-45de-b758-3f8040cc026d",
       "name": "Discord Error Reply",
-      "webhookId": "cf7361db-56e3-4e13-aaac-590450d0f792"
+      "webhookId": "",
+      "credentials": {
+        "discordBotApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Discord Bot account"
+        }
+      }
     },
     {
       "parameters": {
@@ -335,10 +386,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        208,
+        -1408,
         -64
       ],
-      "id": "e080e0ad-b3e1-4339-9ac4-379d7eb233b8",
+      "id": "6dcab5da-8423-482c-b6d9-ffee1fa6c9a4",
       "name": "Sticky Note - Overview"
     },
     {
@@ -351,10 +402,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        784,
+        -832,
         32
       ],
-      "id": "e483a6fa-2996-499b-b1bb-dc79a4b286ac",
+      "id": "48bfa715-4fed-473f-b804-ba0f735ec43b",
       "name": "Sticky Note - Trigger"
     },
     {
@@ -367,10 +418,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1600,
+        -16,
         -80
       ],
-      "id": "11f775f4-f864-4d03-a59f-d64497548943",
+      "id": "f6446181-cbbe-470a-b654-fc8274e71379",
       "name": "Sticky Note - Video Data Extraction"
     },
     {
@@ -383,10 +434,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2144,
+        528,
         -80
       ],
-      "id": "f5c03875-75ee-47cf-98fb-b38ca0252f99",
+      "id": "dfb5a5b4-921a-44b8-863a-f0a34ef284f6",
       "name": "Sticky Note - Transcript Processing"
     },
     {
@@ -399,10 +450,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2704,
+        1088,
         -80
       ],
-      "id": "8de494c3-331b-43e2-a3af-93357f38aa76",
+      "id": "116e832f-4c11-451c-a3bb-66680d3b7f03",
       "name": "Sticky Note - AI Summarization"
     },
     {
@@ -415,10 +466,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3328,
+        1712,
         -80
       ],
-      "id": "467a5219-31d9-4408-b3e5-3ee5249b150b",
+      "id": "25b52b6c-db1c-4439-9e23-9481690c3837",
       "name": "Sticky Note - Save & Notify"
     },
     {
@@ -431,10 +482,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        800,
+        -816,
         832
       ],
-      "id": "d572aa5d-711a-41d1-9b8e-d770896d7bd8",
+      "id": "646554d2-c672-415b-a33a-1da62f3ed27d",
       "name": "Sticky Note - Error Handling"
     },
     {
@@ -447,10 +498,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        816,
+        -800,
         1120
       ],
-      "id": "2d59111c-f6a9-402b-a595-7521f852492d",
+      "id": "eb2d6b48-a92c-4b0e-a778-e16fbe698b57",
       "name": "Sticky Note - Discord Setup"
     },
     {
@@ -463,10 +514,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2704,
+        1088,
         496
       ],
-      "id": "511c56bf-9f80-4e4d-acc2-c48d767f8fd4",
+      "id": "4c21a5a4-694b-4ca8-bbb1-83c9cf42915f",
       "name": "Sticky Note - Gemini Setup"
     },
     {
@@ -479,11 +530,24 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3280,
+        1664,
         496
       ],
-      "id": "e0fbbd52-4401-4daa-856e-db5a090e8097",
+      "id": "447e0689-b5bc-4f93-aea4-e6a27a977d3c",
       "name": "Sticky Note - Supabase Setup"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the full summary and title from the previous node\nconst summary = $('Prepare Insert Data').first().json.ai_summary || \"No summary available\";\nconst data = $('Prepare Insert Data').first().json;\nconst maxLength = 1800; // Limit per message\nconst chunks = [];\n\n// Create the header for the very first message\nconst header = `Video saved! **${data.title}** by **${data.channel}** | Duration: ${Math.floor(data.duration / 60)}m ${data.duration % 60}s | ${data.view_count} views ---\\n\\n`;\n\nlet remainingText = summary;\n\n// Loop through the text and break it into chunks intelligently\nwhile (remainingText.length > 0) {\n    if (remainingText.length <= maxLength) {\n        // If the remaining text fits, add it and break\n        chunks.push({ json: { chunk: (chunks.length === 0 ? header : \"\") + remainingText } });\n        break;\n    }\n\n    // Find the last space within the limit to avoid breaking a word\n    let splitIndex = remainingText.lastIndexOf(\" \", maxLength);\n    \n    // If no space is found, split strictly at maxLength (fallback for long words)\n    if (splitIndex === -1) {\n        splitIndex = maxLength;\n    }\n\n    let chunkText = remainingText.substring(0, splitIndex);\n    \n    // Prepend the header only to the first chunk\n    if (chunks.length === 0) {\n        chunkText = header + chunkText;\n    }\n\n    chunks.push({ json: { chunk: chunkText } });\n    \n    // Update remaining text for the next iteration\n    remainingText = remainingText.substring(splitIndex).trim();\n}\n\nreturn chunks;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        240
+      ],
+      "id": "b32a9d85-67a9-4217-984c-603702b292c0",
+      "name": "Prepare Messages for Discord"
     }
   ],
   "connections": {
@@ -619,7 +683,7 @@
       "main": [
         [
           {
-            "node": "Discord Reply",
+            "node": "Prepare Messages for Discord",
             "type": "main",
             "index": 0
           }
@@ -658,10 +722,22 @@
           }
         ]
       ]
+    },
+    "Prepare Messages for Discord": {
+      "main": [
+        [
+          {
+            "node": "Discord Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {},
   "meta": {
-    "instanceId": "9e5948555f8096b84815a6d1d44a90b0aa398cb4fb430eefd33674129efd573e"
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
   }
 }

@@ -37,10 +37,11 @@ When a user pastes a YouTube URL into a Discord channel, the workflow:
 1. **Detects** the YouTube URL using RegEx (supports youtube.com, youtu.be, shorts, live)
 2. **Extracts** the video's subtitles and metadata using yt-dlp
 3. **Cleans** the raw VTT subtitle file into plain-text transcript
-4. **Summarizes** the transcript using an LLM (Gemini 2.5 Flash) into a concise 3–5 paragraph summary
+4. **Summarizes** the transcript using an LLM (Gemini 2.5 Flash) into a TLDR + detailed summary
 5. **Stores** the video metadata, full transcript, and AI summary in a Supabase database
 6. **Logs** every run (success or error) to a separate `runs` table for tracking
-7. **Replies** in Discord with the video title, stats, and a summary preview
+7. **Chunks** long summaries into Discord-safe messages (≤2000 characters each)
+8. **Replies** in Discord with the video title, stats, and the full summary
 
 Non-YouTube messages get a friendly "not a YouTube link" reply. Errors are caught, classified, logged to the database, and reported back to Discord.
 
@@ -54,7 +55,7 @@ Non-YouTube messages get a friendly "not a YouTube link" reply. Errors are caugh
 Discord Trigger → Extract YouTube URL → Is YouTube URL?
   ├─ Yes → yt-dlp Get Metadata → Parse Metadata → Read Subtitle File → Parse Transcript
   │        → Message a model (Gemini) → Prepare Insert Data → Save to Supabase
-  │        → Prepare Success Log → Log Run → Discord Reply
+  │        → Prepare Success Log → Log Run → Prepare Messages for Discord → Discord Reply
   └─ No  → Discord Not YouTube Reply
 ```
 
@@ -77,17 +78,18 @@ Error Trigger → Prepare Error Data → Log Run Error → Discord Error Reply
 | 5 | Parse Metadata | Code | Extracts title, channel, views, duration via RegEx |
 | 6 | Read Subtitle File | Execute Command | Reads the .vtt file (continueOnFail enabled) |
 | 7 | Parse Transcript | Code | Strips VTT timestamps/tags, deduplicates lines |
-| 8 | Message a model | Google Gemini | Sends transcript to Gemini 2.5 Flash for summarization |
+| 8 | Message a model | Google Gemini | Sends transcript to Gemini 2.5 Flash for TLDR + detailed summary |
 | 9 | Prepare Insert Data | Code | Merges summary with all metadata fields |
 | 10 | Save to Supabase | Supabase | Inserts full record into `videos` table |
 | 11 | Prepare Success Log | Code | Builds success run record |
 | 12 | Log Run | Supabase | Inserts into `runs` table |
-| 13 | Discord Reply | Discord | Posts summary preview to channel |
-| 14 | Discord Not YouTube Reply | Discord | Replies when message isn't a YouTube link |
-| 15 | Error Trigger | Error Trigger | Catches any unhandled node failure |
-| 16 | Prepare Error Data | Code | Classifies error type and extracts context |
-| 17 | Log Run Error | Supabase | Logs error to `runs` table |
-| 18 | Discord Error Reply | Discord | Posts error message to channel |
+| 13 | Prepare Messages for Discord | Code | Chunks long summaries into Discord-safe messages (≤2000 chars) |
+| 14 | Discord Reply | Discord | Posts summary preview to channel |
+| 15 | Discord Not YouTube Reply | Discord | Replies when message isn't a YouTube link |
+| 16 | Error Trigger | Error Trigger | Catches any unhandled node failure |
+| 17 | Prepare Error Data | Code | Classifies error type and extracts context |
+| 18 | Log Run Error | Supabase | Logs error to `runs` table |
+| 19 | Discord Error Reply | Discord | Posts error message to channel |
 
 ---
 
