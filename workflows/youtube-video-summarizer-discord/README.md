@@ -35,9 +35,9 @@
 When a user pastes a YouTube URL into a Discord channel, the workflow:
 
 1. **Detects** the YouTube URL using RegEx (supports youtube.com, youtu.be, shorts, live)
-2. **Extracts** the video's subtitles and metadata using yt-dlp
+2. **Extracts** the video's subtitles (English and Vietnamese) and metadata using yt-dlp
 3. **Cleans** the raw VTT subtitle file into plain-text transcript
-4. **Summarizes** the transcript using an LLM (Gemini 2.5 Flash) into a TLDR + detailed summary
+4. **Summarizes** the transcript using an LLM (Gemini 2.5 Flash) into a TLDR + detailed summary (in the original language)
 5. **Stores** the video metadata, full transcript, and AI summary in a Supabase database
 6. **Logs** every run (success or error) to a separate `runs` table for tracking
 7. **Chunks** long summaries into Discord-safe messages (≤2000 characters each)
@@ -74,11 +74,11 @@ Error Trigger → Prepare Error Data → Log Run Error → Discord Error Reply
 | 1 | Discord Trigger | Discord Bot Trigger | Fires on every message in the configured channel |
 | 2 | Extract YouTube URL | Code | RegEx extracts video ID from message content |
 | 3 | Is YouTube URL? | IF | Routes YouTube URLs to processing, others to rejection reply |
-| 4 | yt-dlp Get Metadata | Execute Command | Downloads subtitles (.vtt) and prints metadata JSON |
-| 5 | Parse Metadata | Code | Extracts title, channel, views, duration via RegEx |
-| 6 | Read Subtitle File | Execute Command | Reads the .vtt file (continueOnFail enabled) |
+| 4 | yt-dlp Get Metadata | Execute Command | Downloads subtitles (.vtt, English/Vietnamese) and prints metadata JSON |
+| 5 | Parse Metadata | Code | Extracts title, channel, views, duration via RegEx; decodes Unicode for multi-language support |
+| 6 | Read Subtitle File | Execute Command | Dynamically finds and reads the .vtt file (continueOnFail enabled) |
 | 7 | Parse Transcript | Code | Strips VTT timestamps/tags, deduplicates lines |
-| 8 | Message a model | Google Gemini | Sends transcript to Gemini 2.5 Flash for TLDR + detailed summary |
+| 8 | Message a model | Google Gemini | Sends transcript to Gemini 2.5 Flash for TLDR + detailed summary (in original language) |
 | 9 | Prepare Insert Data | Code | Merges summary with all metadata fields |
 | 10 | Save to Supabase | Supabase | Inserts full record into `videos` table |
 | 11 | Prepare Success Log | Code | Builds success run record |
@@ -147,8 +147,8 @@ CREATE TABLE videos (
   transcript TEXT,
   ai_summary TEXT,
   thumbnail_url TEXT,
-  discord_shared_at TIMESTAMPTZ,
-  channel_id TEXT
+  channel_id TEXT,
+  date_added TIMESTAMPTZ DEFAULT now()
 );
 
 -- Runs table: logs every workflow execution (success or error)
