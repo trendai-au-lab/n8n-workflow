@@ -2,7 +2,7 @@
 
 # YouTube Video Summarizer — Discord Bot
 
-> Automatically summarize YouTube videos shared in Discord using yt-dlp, Gemini AI, and Supabase.
+> Paste a YouTube URL into a Discord channel and this workflow automatically extracts the transcript, uses an LLM to generate a concise summary, and stores everything in a database — all in seconds.
 
 > **Self-hosted n8n only.** This workflow uses the Execute Command node to run `yt-dlp` inside the n8n container. This requires shell access, which is only available on self-hosted instances (Docker, VPS, etc.) — it will **not** work on n8n Cloud.
 
@@ -32,16 +32,17 @@
 
 ## What It Does
 
-1. **Listens** for messages in a Discord channel via a bot trigger
-2. **Detects** YouTube URLs using RegEx (supports youtube.com, youtu.be, shorts, live)
-3. **Downloads** subtitles and metadata using yt-dlp
-4. **Parses** the VTT subtitle file into clean plain text
-5. **Summarizes** the transcript with Gemini 2.5 Flash (3-5 paragraph prose)
-6. **Saves** video metadata, transcript, and summary to a Supabase `videos` table
-7. **Logs** every run (success or error) to a Supabase `runs` table
-8. **Replies** in Discord with the video title, stats, and summary preview
+When a user pastes a YouTube URL into a Discord channel, the workflow:
 
-Non-YouTube messages get a friendly "not a YouTube link" reply. Errors are caught by an Error Trigger, classified, logged, and reported back to Discord.
+1. **Detects** the YouTube URL using RegEx (supports youtube.com, youtu.be, shorts, live)
+2. **Extracts** the video's subtitles and metadata using yt-dlp
+3. **Cleans** the raw VTT subtitle file into plain-text transcript
+4. **Summarizes** the transcript using an LLM (Gemini 2.5 Flash) into a concise 3–5 paragraph summary
+5. **Stores** the video metadata, full transcript, and AI summary in a Supabase database
+6. **Logs** every run (success or error) to a separate `runs` table for tracking
+7. **Replies** in Discord with the video title, stats, and a summary preview
+
+Non-YouTube messages get a friendly "not a YouTube link" reply. Errors are caught, classified, logged to the database, and reported back to Discord.
 
 ---
 
